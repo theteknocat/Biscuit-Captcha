@@ -232,10 +232,16 @@ class SimpleCaptcha {
     protected function ImageAllocate() {
         // Cleanup
         if (!empty($this->im)) {
-            imagedestroy($this->im);
+            @imagedestroy($this->im);
         }
 
         $this->im = imagecreatetruecolor($this->width*$this->scale, $this->height*$this->scale);
+
+        imagealphablending($this->im,true);
+
+        $transparent_bg = imagecolorallocatealpha($this->im,0,0,0,127);
+
+        imagefill($this->im,0,0,$transparent_bg);
 
         // Background color
         $this->GdBgColor = imagecolorallocate($this->im,
@@ -243,18 +249,18 @@ class SimpleCaptcha {
             $this->backgroundColor[1],
             $this->backgroundColor[2]
         );
-        imagefilledrectangle($this->im, 0, 0, $this->width*$this->scale, $this->height*$this->scale, $this->GdBgColor);
 
         // Foreground color
         $color           = $this->colors[mt_rand(0, sizeof($this->colors)-1)];
-        $this->GdFgColor = imagecolorallocate($this->im, $color[0], $color[1], $color[2]);
+        $this->GdFgColor = imagecolorallocatealpha($this->im, $color[0], $color[1], $color[2], 5);
 
         // Shadow color
         if (!empty($this->shadowColor)) {
-            $this->GdShadowColor = imagecolorallocate($this->im,
+            $this->GdShadowColor = imagecolorallocatealpha($this->im,
                 $this->shadowColor[0],
                 $this->shadowColor[1],
-                $this->shadowColor[2]
+                $this->shadowColor[2],
+                80
             );
         }
     }
@@ -404,23 +410,50 @@ class SimpleCaptcha {
      * Wave filter
      */
     protected function WaveImage() {
+
+        // Create temporary destination image to put the wavy text into so the end result is not wavy text over top of original text:
+        $temp_dest = imagecreatetruecolor($this->width*$this->scale, $this->height*$this->scale);
+        imagealphablending($this->im,true);
+        $transparent_bg = imagecolorallocatealpha($temp_dest,0,0,0,127);
+        imagefill($temp_dest,0,0,$transparent_bg);
+
         // X-axis wave generation
         $xp = $this->scale*$this->Xperiod*rand(1,3);
         $k = rand(0, 100);
         for ($i = 0; $i < ($this->width*$this->scale); $i++) {
-            imagecopy($this->im, $this->im,
+            imagecopy($temp_dest, $this->im,
                 $i-1, sin($k+$i/$xp) * ($this->scale*$this->Xamplitude),
                 $i, 0, 1, $this->height*$this->scale);
         }
 
+		// Destroy and re-create the source, then copy our temp image into it to prevent overlapping
+        imagedestroy($this->im);
+        $this->ImageAllocate();
+
+        imagecopy($this->im,$temp_dest,0,0,0,0,imagesx($temp_dest),imagesy($temp_dest));
+
+        imagedestroy($temp_dest);
+        $temp_dest = imagecreatetruecolor($this->width*$this->scale, $this->height*$this->scale);
+        imagealphablending($this->im,true);
+        $transparent_bg = imagecolorallocatealpha($temp_dest,0,0,0,127);
+        imagefill($temp_dest,0,0,$transparent_bg);
+
         // Y-axis wave generation
         $k = rand(0, 100);
         $yp = $this->scale*$this->Yperiod*rand(1,2);
+
         for ($i = 0; $i < ($this->height*$this->scale); $i++) {
-            imagecopy($this->im, $this->im,
+            imagecopy($temp_dest, $this->im,
                 sin($k+$i/$yp) * ($this->scale*$this->Yamplitude), $i-1,
                 0, $i, $this->width*$this->scale, 1);
         }
+
+		// Again destroy and re-create the source, then copy our temp image into it to prevent overlapping
+        imagedestroy($this->im);
+        $this->ImageAllocate();
+
+        imagecopy($this->im,$temp_dest,0,0,0,0,imagesx($temp_dest),imagesy($temp_dest));
+        imagedestroy($temp_dest);
     }
 
 
@@ -432,6 +465,21 @@ class SimpleCaptcha {
     protected function ReduceImage() {
         // Reduzco el tamaño de la imagen
         $imResampled = imagecreatetruecolor($this->width, $this->height);
+
+        imagealphablending($imResampled,true);
+
+        // Here is where we set the background before dropping on the text:
+
+        imagefilledrectangle($imResampled, 0, 0, $this->width, $this->height, $this->GdBgColor);
+
+        $bg_image = imagecreatefrompng(FW_MODULE_PATH.'/captcha/images/background.png');
+
+        imagealphablending($bg_image,true);
+
+        imagecopyresampled($imResampled,$bg_image,0,0,0,0,$this->width,$this->height,imagesx($bg_image),imagesy($bg_image));
+
+        imagedestroy($bg_image);
+
         imagecopyresampled($imResampled, $this->im,
             0, 0, 0, 0,
             $this->width, $this->height,

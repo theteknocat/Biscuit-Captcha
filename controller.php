@@ -11,12 +11,27 @@ require_once('modules/captcha/vendor/cool-php-captcha-0.2.1/captcha.php');
  */
 class Captcha extends AbstractModuleController {
 	protected $_uncacheable_actions = array('index');
+	/**
+	 * Render the captcha image when on the captcha page
+	 *
+	 * @return void
+	 * @author Peter Epp
+	 */
 	public function action_index() {
 		if ($this->Biscuit->Page->short_slug() == "captcha") {
 			$this->set_view_var('captcha',new SimpleCaptcha(array('wordsFile' => '')));
 			Response::content_type("image/png");
 			$this->render();
 		}
+	}
+	/**
+	 * When running as secondary, register CSS file
+	 *
+	 * @return void
+	 * @author Peter Epp
+	 */
+	public function action_secondary() {
+		$this->register_css(array('filename' => 'captcha.css', 'media' => 'screen'));
 	}
 	/**
 	 * Does the user input match the captcha?
