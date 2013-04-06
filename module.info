@@ -1,0 +1,3 @@
+name = "Captcha"
+description = "Module for rendering CAPTCHA images for use in forms"
+version = "1.3"

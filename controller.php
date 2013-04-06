@@ -3,11 +3,12 @@ require_once('modules/captcha/vendor/cool-php-captcha-0.2.1/captcha.php');
 /**
  * Wrapper module for Cool PHP Captcha and checking if user input matches captcha
  *
- * @package default
+ * @package Modules
+ * @subpackage Captcha
  * @author Peter Epp
  * @copyright Copyright (c) 2009 Peter Epp (http://teknocat.org)
  * @license GNU Lesser General Public License (http://www.gnu.org/licenses/lgpl.html)
- * @version 2.0
+ * @version 2.0 $Id: controller.php 14683 2012-06-18 19:26:11Z teknocat $
  */
 class Captcha extends AbstractModuleController {
 	protected $_uncacheable_actions = array('index');
@@ -64,6 +65,17 @@ class Captcha extends AbstractModuleController {
 		return '/captcha/'.time();
 	}
 	/**
+	 * Set custom URLs
+	 *
+	 * @return void
+	 * @author Peter Epp
+	 */
+	public static function uri_mapping_rules() {
+		return array(
+			'/(?P<page_slug>captcha)(\/[0-9]+)?$/'
+		);
+	}
+	/**
 	 * Run migrations required for module to be installed properly
 	 *
 	 * @return void
@@ -79,7 +91,7 @@ class Captcha extends AbstractModuleController {
 			// Remove captcha from module pages first to ensure clean install:
 			DB::query("DELETE FROM `module_pages` WHERE `module_id` = {$module_id} AND `page_name` = 'captcha'");
 			// Add Captcha to captcha page:
-			DB::insert("INSERT INTO `module_pages` SET `module_id` = {$module_id}, `page_name` = 'captcha', `is_primary` = 1");
+			DB::insert("INSERT INTO `module_pages` (`module_id`, `page_name`, `is_primary`) VALUES ({$module_id}, 'captcha', 1), ({$module_id}, '*', 0)");
 		}
 	}
 	/**

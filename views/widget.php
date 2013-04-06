@@ -2,7 +2,7 @@
 We know these things are annoying, but they prove you are human and<br>really help prevent spam.<br>
 If you can't read the text, <a href="#refresh_captcha" id="captcha_refresh_button">please click here for a new one</a>.
 <input type="hidden" name="captcha_required" value="1">
-<script type="text/javascript" charset="utf-8" language="javascript">
+<script type="text/javascript">
 <?php
 if (!Request::is_ajax()) {
 ?>
